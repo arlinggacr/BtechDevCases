@@ -36,7 +36,7 @@ func RegisterAccount(request model.RegisterRequest) (*model.User, error) {
 		return nil, fmt.Errorf("hash account password: %w", err)
 	}
 
-	user := &model.User{ID: time.Now().UTC().Format("20060102150405.000000000"), Email: email, PasswordHash: string(hash)}
+	user := &model.User{Email: email, PasswordHash: string(hash)}
 	if err := repository.SaveRegisteredAccount(user); err != nil {
 		return nil, fmt.Errorf("save registered account: %w", err)
 	}
