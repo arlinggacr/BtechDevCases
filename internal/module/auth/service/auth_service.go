@@ -52,13 +52,22 @@ func LoginAccount(request model.LoginRequest) (*model.AuthResponse, error) {
 		return nil, fmt.Errorf("compare login password: %w", ErrInvalidCredentials)
 	}
 
-	now := time.Now()
-	claims := jwt.MapClaims{"sub": user.ID, "email": user.Email, "iat": now.Unix(), "exp": now.Add(tokenTTL).Unix()}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(jwtSecret)
+	token, err := createAccountToken(user.ID, user.Email)
 	if err != nil {
 		return nil, fmt.Errorf("sign account token: %w", err)
 	}
 	return &model.AuthResponse{Token: token, User: user}, nil
+}
+
+func createAccountToken(userID int64, email string) (string, error) {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"sub":   userID,
+		"email": email,
+		"iat":   now.Unix(),
+		"exp":   now.Add(tokenTTL).Unix(),
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(jwtSecret)
 }
 
 func AuthenticateRequest(c *fiber.Ctx) error {
@@ -83,6 +92,15 @@ func AuthenticateRequest(c *fiber.Ctx) error {
 	if !ok {
 		return fiber.ErrUnauthorized
 	}
+	userID, ok := claims["sub"].(float64)
+	if !ok {
+		return fiber.ErrUnauthorized
+	}
+	refreshedToken, err := createAccountToken(int64(userID), email)
+	if err != nil {
+		return fiber.ErrUnauthorized
+	}
+	c.Set("X-Auth-Token", refreshedToken)
 	c.Locals("email", email)
 	return c.Next()
 }

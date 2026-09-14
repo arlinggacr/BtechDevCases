@@ -120,6 +120,9 @@ func TestAuthenticatedEndpointReturnsWelcomeMessage(t *testing.T) {
 	if response.StatusCode != fiber.StatusOK {
 		t.Fatalf("expected status 200, got %d", response.StatusCode)
 	}
+	if response.Header.Get("X-Auth-Token") == "" {
+		t.Fatal("expected refreshed token in X-Auth-Token response header")
+	}
 }
 
 func TestAuthenticatedEndpointRejectsMissingToken(t *testing.T) {
